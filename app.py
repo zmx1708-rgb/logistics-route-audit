@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""天地图运输距离与路径规划系统 - Streamlit 网页端
+"""天地图物流运输距离与路径规划系统 - Streamlit 网页端
 宏观审核精简版（含固定分类异常面板） + 微观单计划明细 + 本地地址缓存 + 智能Key降级休眠"""
 import json
 import os
@@ -27,6 +27,12 @@ st.set_page_config(
 # ==================== 全局配置与初始化 ====================
 CACHE_FILE = "address_cache.json"
 NO_PROXY = {"http": None, "https": None}  # 强制绕过本地代理直连物理网卡
+
+# 写死内置的双 Key 轮换池
+DEFAULT_KEY_POOL = [
+    "6cdcbe8f3f24b6d90b7faf1ceaafb26d",
+    "a003132b5cc5caa9f4d83d6b264b34c9"
+]
 
 
 # ==================== 本地地址缓存管理 ====================
@@ -425,12 +431,9 @@ def main():
 
     with st.sidebar:
         st.header("⚙️ 系统配置")
-        # 密钥输入框默认留空，确保不泄露个人 Key
-        key1 = st.text_input("天地图 API Key 1", value="", type="password", placeholder="请输入您的天地图 Key")
-        key2 = st.text_input("天地图 API Key 2", value="", type="password", placeholder="请输入备用 Key（可选）")
-
+        # 密钥和线程数已写死在后台，侧边栏仅保留请求间隔调节
+        st.info("💡 系统已内置双 Key 轮换与双线程并发机制。")
         request_interval = st.slider("请求间隔 (秒)", min_value=1, max_value=5, value=3)
-        max_workers = st.slider("并发线程数", min_value=1, max_value=4, value=2)
 
     uploaded_file = st.file_uploader("上传排车计划 Excel 文件 (.xlsx)", type=["xlsx"])
 
@@ -443,12 +446,9 @@ def main():
                 st.dataframe(df.head(5))
 
             if st.button("🚀 开始自动化审核与路径规划", type="primary"):
-                # 动态过滤并获取用户输入的有效 Key
-                key_pool = [k.strip() for k in [key1, key2] if k and k.strip()]
-
-                if not key_pool:
-                    st.error("⚠️ 请先在左侧边栏输入至少一个有效的天地图 API Key 才能开始测算！")
-                    st.stop()
+                # 使用后台写死的双 Key 池与并发线程数 (2)
+                key_pool = DEFAULT_KEY_POOL
+                max_workers = 2
 
                 key_manager = SmartKeyManager(key_pool)
                 mid_cols = [c for c in df.columns if c.startswith("途径点")]
