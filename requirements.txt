@@ -3,5 +3,4 @@ pandas
 openpyxl
 cpca
 requests
-setuptools
-pkg_resources
+setuptools<=80.10.2
