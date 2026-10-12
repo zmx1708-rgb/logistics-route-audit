@@ -4,3 +4,4 @@ openpyxl
 cpca
 requests
 setuptools
+pkg_resources
