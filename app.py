@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""天地图物流运输距离与路径规划系统 - Streamlit 网页端
-宏观审核精简版（含固定分类异常面板） + 微观单计划明细 + 本地地址缓存 + 智能Key降级休眠"""
+"""天地图物流运输距离与路径规划系统 Streamlit 网页端
+宏观审核精简版（含固定分类异常面板） + 微观单计划明细（一键ZIP打包下载） + 本地地址缓存 + 智能Key降级休眠
+"""
 import json
 import os
 import time
@@ -423,6 +424,12 @@ def main():
     st.title("🚚 天地图物流运输距离与路径规划审核系统")
     st.markdown("上传排车计划 Excel 文件，系统将自动执行地址清洗、智能缓存、双 Key 并发测算与四大异常分类。")
 
+    # 初始化 Session State 状态防刷新丢失
+    if "audit_completed" not in st.session_state:
+        st.session_state.audit_completed = False
+    if "comprehensive_zip_path" not in st.session_state:
+        st.session_state.comprehensive_zip_path = ""
+
     with st.sidebar:
         st.header("⚙️ 系统配置")
         # 密钥输入框默认留空，必须由用户自行填写
@@ -553,35 +560,37 @@ def main():
 
                 wb.save(summary_out_path)
 
-                zip_path = os.path.join(result_dir, "详细路段明细打包.zip")
-                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # === 将宏观精简表与详细路段明细文件夹统一打包进一个综合 ZIP 中 ===
+                comprehensive_zip_path = os.path.join(result_dir, "物流路线审核综合结果.zip")
+                with zipfile.ZipFile(comprehensive_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    # 1. 写入宏观精简总表
+                    if os.path.exists(summary_out_path):
+                        zipf.write(summary_out_path, arcname="排车计划审核清单_精简版.xlsx")
+                    # 2. 写入详细路段明细文件夹下的所有文件
                     for root, dirs, files in os.walk(detail_output_dir):
                         for file in files:
                             full_path = os.path.join(root, file)
-                            zipf.write(full_path, arcname=file)
+                            arcname = os.path.join("详细路段明细", file)
+                            zipf.write(full_path, arcname=arcname)
 
-                st.success("🎉 全部处理完成！审核结果已生成：")
-
-                col1, col2 = st.columns(2)
-                with col1:
-                    with open(summary_out_path, "rb") as f:
-                        st.download_button(
-                            label="📥 下载宏观精简审核总表 (.xlsx)",
-                            data=f,
-                            file_name="排车计划审核清单_精简版.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                with col2:
-                    with open(zip_path, "rb") as f:
-                        st.download_button(
-                            label="📦 下载详细路段明细打包 (.zip)",
-                            data=f,
-                            file_name="详细路段明细打包.zip",
-                            mime="application/zip"
-                        )
+                # 将路径存入 session_state 保持状态
+                st.session_state.audit_completed = True
+                st.session_state.comprehensive_zip_path = comprehensive_zip_path
 
         except Exception as e:
             st.error(f"文件处理过程中发生错误: {str(e)}")
+
+    # 无论是否刚刚点击，只要 session_state 中有结果就持久渲染下载按钮
+    if st.session_state.audit_completed and os.path.exists(st.session_state.comprehensive_zip_path):
+        st.success("🎉 全部处理完成！审核结果压缩包已就绪：")
+        with open(st.session_state.comprehensive_zip_path, "rb") as f:
+            st.download_button(
+                label="📦 下载全部审核结果（含宏观精简表与详细路段明细 .zip）",
+                data=f,
+                file_name="物流路线审核综合结果.zip",
+                mime="application/zip",
+                key="download_comprehensive_zip"
+            )
 
 
 if __name__ == "__main__":
