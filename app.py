@@ -433,8 +433,8 @@ def main():
     with st.sidebar:
         st.header("⚙️ 系统配置")
         # 密钥输入框默认留空，必须由用户自行填写
-        key1 = st.text_input("天地图 API Key 1", value="", type="password", placeholder="请输入您的天地图 Key")
-        key2 = st.text_input("天地图 API Key 2", value="", type="password", placeholder="请输入备用 Key（可选）")
+        key1 = st.text_input("天地图 API Key 1", value="", type="password", placeholder="请输入您的天地图 Key1")
+        key2 = st.text_input("天地图 API Key 2", value="", type="password", placeholder="请输入您的天地图 Key2")
 
         request_interval = st.slider("请求间隔 (秒)", min_value=1, max_value=5, value=3)
 
