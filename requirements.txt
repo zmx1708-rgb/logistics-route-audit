@@ -3,3 +3,4 @@ pandas
 openpyxl
 cpca
 requests
+setuptools
